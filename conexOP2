@@ -42,7 +42,7 @@ void setup() {
 
   //hand control of soft-start
   pinMode(SSbuttonPin, INPUT);       // Set the switch pin as input
-  pinMode(SSswitchpin, OUTPUT);
+  pinMode(SSswitchPin, OUTPUT);
   //operational configuration buttons
   pinMode(WWbuttonPin, INPUT);       // Set the switch pin as input
   pinMode(INTbuttonPin, INPUT);       // Set the switch pin as input
