@@ -1,0 +1,214 @@
+
+//START --- add all defines of pins to variables
+#define
+//END --- add all defines of pins to variables
+
+int InUse = 0;
+
+//START --- set initial button states
+int SSbuttonState;
+int SSbuttonAction = 0;
+
+int WWbuttonState;
+int WWbuttonAction = 0;
+
+int INTbuttonState;
+int INTbuttonAction = 0;
+
+int FILTbuttonState;
+int FILTbuttonAction = 0;
+
+int RRObuttonState;
+int RRObuttonAction = 0;
+
+int RNFbuttonState;
+int RNFbuttonAction = 0;
+//END --- set initial button states
+int WWbuttonPin = 19;
+int INTbuttonPin = 2;
+int FILTbuttonPin = 14;
+int RRObuttonPin = 6;
+int RNFbuttonPin = 15;
+int SSbuttonPin = 17;
+
+int SSswitchpin = 31;
+int ITswitchPin = 44;
+int ROswitchPin = 25;
+int GWswitchPin = 37;
+int NFswitchPin = 26;
+int WWswitchPin = 38;
+//START --- setup
+void setup() {
+
+  //hand control of soft-start
+  pinMode(SSbuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(SSswitchpin, OUTPUT);
+  //operational configuration buttons
+  pinMode(WWbuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(INTbuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(FILTbuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(RRObuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(RNFbuttonPin, INPUT);       // Set the switch pin as input
+
+  //valve switches
+  pinMode(ITswitchPin, OUTPUT);      // Set to control the actuator switch
+  pinMode(ROswitchPin, OUTPUT);      // Set to control the actuator switch
+  pinMode(GWswitchPin, OUTPUT);      // Set to control the actuator switch
+  pinMode(NFswitchPin, OUTPUT);      // Set to control the actuator switch
+  pinMode(WWswitchPin, OUTPUT);      // Set to control the actuator switch
+  buttonState = digitalRead(buttonPin);   // read the initial state
+}
+//END --- setup
+
+//START --- loop
+void loop() {
+  MakeWashWater();
+  MakeIntWater();
+  FilterGW();
+  RinseNF();
+  RinseRO();
+  SoftStart();
+}
+//END --- loop
+
+//START --- functions
+void MakeWashWater() {
+  int val = digitalRead(WWbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int val2 = digitalRead(WWbuttonPin);     // read the input again to check for bounces
+  if (val == val2) {                 // make sure we got 2 consistant readings!
+    if (val != WWbuttonState) {          // the button state has changed!
+      if (val == LOW && InUse == 0) {                // check if the button is pressed
+        if (WWbuttonAction == 0) {          // is the light off?
+          WWbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(ITswitchPin, HIGH);  //open intermediate tank
+          digitalWrite(ROswitchPin, HIGH);  //open RO membrane
+        } else {
+          WWbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(ITswitchPin, LOW);   //close intermediate tank
+          digitalWrite(ROswitchPin, LOW);   //close RO membrane
+        }
+      }
+    }
+    WWbuttonState = val;                 // save the new state in our variable
+  }
+}
+
+void RinseRO() {
+  int val = digitalRead(RRObuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int val2 = digitalRead(RRObuttonPin);     // read the input again to check for bounces
+  if (val == val2) {                 // make sure we got 2 consistant readings!
+    if (val != RRObuttonState) {          // the button state has changed!
+      if (val == LOW  && InUse == 0) {                // check if the button is pressed
+        if (RRObuttonAction == 0) {          // is the light off?
+          RRObuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(WWswitchPin, HIGH);  //open intermediate tank
+          digitalWrite(ROswitchPin, HIGH);  //open RO membrane
+        } else {
+          RRObuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(WWswitchPin, LOW);   //close intermediate tank
+          digitalWrite(ROswitchPin, LOW);   //close RO membrane
+        }
+      }
+    }
+    RRObuttonState = val;                 // save the new state in our variable
+  }
+}
+
+void MakeIntWater() {
+  int val = digitalRead(INTbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int val2 = digitalRead(INTbuttonPin);     // read the input again to check for bounces
+  if (val == val2) {                 // make sure we got 2 consistant readings!
+    if (val != INTbuttonState) {          // the button state has changed!
+      if (val == LOW  && InUse == 0) {                // check if the button is pressed
+        if (INTbuttonAction == 0) {          // is the light off?
+          INTbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(GWswitchPin, HIGH);  //open greywater tank
+          digitalWrite(NFswitchPin, HIGH);  //open NF membrane
+        } else {
+          INTbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(GWswitchPin, LOW);   //close greywater tank
+          digitalWrite(NFswitchPin, LOW);   //close NF membrane
+        }
+      }
+    }
+    INTbuttonState = val;                 // save the new state in our variable
+  }
+}
+
+void RinseNF() {
+  int val = digitalRead(RNFbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int val2 = digitalRead(RNFbuttonPin);     // read the input again to check for bounces
+  if (val == val2) {                 // make sure we got 2 consistant readings!
+    if (val != RNFbuttonState) {          // the button state has changed!
+      if (val == LOW  && InUse == 0) {                // check if the button is pressed
+        if (RNFbuttonAction == 0) {          // is the light off?
+          RNFbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(WWswitchPin, HIGH);  //open intermediate tank
+          digitalWrite(NFswitchPin, HIGH);  //open RO membrane
+        } else {
+          RNFbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(WWswitchPin, LOW);   //close intermediate tank
+          digitalWrite(NFswitchPin, LOW);   //close RO membrane
+        }
+      }
+    }
+    RNFbuttonState = val;                 // save the new state in our variable
+  }
+}
+
+void FilterGW() {
+  int val = digitalRead(FILTbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int val2 = digitalRead(FILTbuttonPin);     // read the input again to check for bounces
+  if (val == val2) {                 // make sure we got 2 consistant readings!
+    if (val != FILTbuttonState) {          // the button state has changed!
+      if (val == LOW  && InUse == 0) {                // check if the button is pressed
+        if (FILTbuttonAction == 0) {          // is the light off?
+          FILTbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(GWswitchPin, HIGH);  //open greywater tank
+          digitalWrite(SSswitchPin, LOW);
+        } else {
+          FILTbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(GWswitchPin, LOW);   //close greywater tank
+        }
+      }
+    }
+    FILTbuttonState = val;                 // save the new state in our variable
+  }
+}
+
+void SoftStart() {
+  int val = digitalRead(SSbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int val2 = digitalRead(SSbuttonPin);     // read the input again to check for bounces
+  if (val == val2) {                 // make sure we got 2 consistant readings!
+    if (val != SSbuttonState) {          // the button state has changed!
+      if (val == LOW) {                // check if the button is pressed
+        if (SSbuttonAction == 0) {          // is the light off?
+          SSbuttonAction = 1;               // turn light on!
+          digitalWrite(SSswitchPin, HIGH);
+        } else {
+          SSbuttonAction = 0;               // turn light off!
+          digitalWrite(SSswitchPin, LOW);
+        }
+      }
+    }
+    SSbuttonState = val;                 // save the new state in our variable
+  }
+}
+
+//END --- functions
