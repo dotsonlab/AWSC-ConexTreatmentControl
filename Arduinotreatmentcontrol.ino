@@ -1,154 +1,247 @@
-//uv dry contact relay is normally open conact--0
-#include <Wire.h>
-#include <Adafruit_RGBLCDShield.h>
-#include <utility/Adafruit_MCP23017.h>
-Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
-#define RED 0x1
-#define YELLOW 0x3
-#define GREEN 0x2
-#define TEAL 0x6
-#define BLUE 0x4
-#define VIOLET 0x5
-#define WHITE 0x7
+//START --- add all defines of pins to variables
+int WWbuttonPin = 19;
+int INTbuttonPin = 2;
+int FILTbuttonPin = 14;
+int RRObuttonPin = 16;
+int RNFbuttonPin = 15;
+int SSbuttonPin = 17;
+int SendbuttonPin = 6;
 
+int SSswitchPin = 31;
+int ITswitchPin = 44;
+int ROswitchPin = 49;
+int GWswitchPin = 37;
+int NFswitchPin = 26;
+int WWswitchPin = 38;
+//END --- add all defines of pins to variables
 
-void statuss() {
-  delay(5);
- int washlevel = analogRead(A10);// *100/1023 percentage
-  int graylevel = analogRead(A11);
-  int blacklevel = analogRead(A12);
-  washlevel = round ((washlevel-116)*2/5);
-  graylevel= round ((graylevel-116)*2/5);
-  blacklevel= round ((blacklevel-116)*2/5);      
-  lcd.setCursor(0, 0);
-  lcd.print("wash");lcd.print(washlevel);lcd.print("%"); 
-  lcd.print(" gray");lcd.print(graylevel); lcd.print("%    ");
-  lcd.setCursor(0, 1);
-  lcd.print("    black:");lcd.print(blacklevel); lcd.print("%    ");
+int InUse = 0;
+
+//START --- set initial button states
+int SSbuttonState;
+int SSbuttonAction = 0;
+
+int WWbuttonState;
+int WWbuttonAction = 0;
+
+int INTbuttonState;
+int INTbuttonAction = 0;
+
+int FILTbuttonState;
+int FILTbuttonAction = 0;
+
+int SendbuttonState;
+int SendbuttonAction = 0;
+
+int RRObuttonState;
+int RRObuttonAction = 0;
+
+int RNFbuttonState;
+int RNFbuttonAction = 0;
+//END --- set initial button states
+
+//START --- setup
+void setup() {
+  //Serial.begin(9600);
+
+  //hand control of soft-start
+  pinMode(SSbuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(SSswitchPin, OUTPUT);
+  
+  //operational configuration buttons
+  pinMode(WWbuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(INTbuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(FILTbuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(RRObuttonPin, INPUT);       // Set the switch pin as input
+  pinMode(RNFbuttonPin, INPUT);       // Set the switch pin as input
+
+  //MWWvalve switches
+  pinMode(ITswitchPin, OUTPUT);      // Set to control the actuator switch
+  pinMode(ROswitchPin, OUTPUT);      // Set to control the actuator switch
+  pinMode(GWswitchPin, OUTPUT);      // Set to control the actuator switch
+  pinMode(NFswitchPin, OUTPUT);      // Set to control the actuator switch
+  pinMode(WWswitchPin, OUTPUT);      // Set to control the actuator switch
+  //buttonState = digitalRead(buttonPin);   // read the initial state
+}
+//END --- setup
+
+//START --- loop
+void loop() {
+  MakeWashWater();
+  MakeIntWater();
+  FilterGW();
+  RinseNF();
+  RinseRO();
+  SoftStart();
+  SendBack();
+  //delay(1000);
+  //Serial.print(InUse); 
+}
+//END --- loop
+
+//START --- functions
+void MakeWashWater() {
+  int MWWval = digitalRead(WWbuttonPin);      // read input MWWvalue and store it in MWWval
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int MWWval2 = digitalRead(WWbuttonPin);     // read the input again to check for bounces
+  if (MWWval == MWWval2) {                 // make sure we got 2 consistant readings!
+    if (MWWval != WWbuttonState) {          // the button state has changed!
+      if (MWWval == LOW) {                // check if the button is pressed
+        if ((WWbuttonAction == 0 ) && (InUse == 0)) {          // is the light off?
+          WWbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(ITswitchPin, HIGH);  //open intermediate tank
+          digitalWrite(ROswitchPin, HIGH);  //open RO membrane
+        } else if (WWbuttonAction == 1 ){
+          WWbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(ITswitchPin, LOW);   //close intermediate tank
+          digitalWrite(ROswitchPin, LOW);   //close RO membrane
+        }
+          //else{}
+      }
+    }
+    WWbuttonState = MWWval;                 // save the new state in our variable
+  }
 }
 
-struct myStructure   //give it a better name ;-)
-{
-  byte LedPin;       //LED connects here, HIGH makes LED light
-  byte ButtonPin;    //Switch connects here
-  byte ButtonState;  //Last state of ButtonPin
-  byte LedState;     //Current state of LED
+void RinseRO() {
+  int RROval = digitalRead(RRObuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int RROval2 = digitalRead(RRObuttonPin);     // read the input again to check for bounces
+  if (RROval == RROval2) {                 // make sure we got 2 consistant readings!
+    if (RROval != RRObuttonState) {          // the button state has changed!
+      if (RROval == LOW) {                // check if the button is pressed
+        if ((RRObuttonAction == 0)  && (InUse == 0)) {          // is the light off?
+          RRObuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(WWswitchPin, HIGH);  //open intermediate tank
+          digitalWrite(ROswitchPin, HIGH);  //open RO membrane
+        } else if (RRObuttonAction == 1) {
+          RRObuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(WWswitchPin, LOW);   //close intermediate tank
+          digitalWrite(ROswitchPin, LOW);   //close RO membrane
+        }
+          //else{}
+      }
+    }
+    RRObuttonState = RROval;                 // save the new state in our variable
+  }
+}
 
-  //Structure Functions
-  void SwitchToggle()
-  {
-    byte val  = digitalRead(ButtonPin);
-    delay(10);
-    byte val2 = digitalRead(ButtonPin);
+void MakeIntWater() {
+  int MIWval = digitalRead(INTbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int MIWval2 = digitalRead(INTbuttonPin);     // read the input again to check for bounces
+  if (MIWval == MIWval2) {                 // make sure we got 2 consistant readings!
+    if (MIWval != INTbuttonState) {          // the button state has changed!
+      if (MIWval == LOW) {                // check if the button is pressed
+        if ((INTbuttonAction == 0)  && (InUse == 0)) {          // is the light off?
+          INTbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(GWswitchPin, HIGH);  //open greywater tank
+          digitalWrite(NFswitchPin, HIGH);  //open NF membrane
+        } else if (INTbuttonAction == 1){
+          INTbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(GWswitchPin, LOW);   //close greywater tank
+          digitalWrite(NFswitchPin, LOW);   //close NF membrane
+        }
+          //else{}
+      }
+    }
+    INTbuttonState = MIWval;                 // save the new state in our variable
+  }
+}
 
-    if (val == val2)
-    {
-      if (val != ButtonState)
-      {
-        ButtonState = val;
-        if (val == LOW)
-        {
-          if (LedState == LOW)
-          {
-            LedState = HIGH;
-            digitalWrite(LedPin, HIGH);
-          }
-          else
-          {
-            LedState = LOW;
-            digitalWrite(LedPin, LOW);
-          }
+void RinseNF() {
+  int RNFval = digitalRead(RNFbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int RNFval2 = digitalRead(RNFbuttonPin);     // read the input again to check for bounces
+  if (RNFval == RNFval2) {                 // make sure we got 2 consistant readings!
+    if (RNFval != RNFbuttonState) {          // the button state has changed!
+      if (RNFval == LOW) {                // check if the button is pressed
+        if ((RNFbuttonAction == 0 ) && (InUse == 0)) {          // is the light off?
+          RNFbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(WWswitchPin, HIGH);  //open intermediate tank
+          digitalWrite(NFswitchPin, HIGH);  //open RO membrane
+        } else if (RNFbuttonAction == 1 ){
+          RNFbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(WWswitchPin, LOW);   //close intermediate tank
+          digitalWrite(NFswitchPin, LOW);   //close RO membrane
+        }
+          //else{}
+      }
+    }
+    RNFbuttonState = RNFval;                 // save the new state in our variable
+  }
+}
+
+void FilterGW() {
+  int Fval = digitalRead(FILTbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int Fval2 = digitalRead(FILTbuttonPin);     // read the input again to check for bounces
+  if (Fval == Fval2) {                 // make sure we got 2 consistant readings!
+    if (Fval != FILTbuttonState) {          // the button state has changed!
+      if (Fval == LOW) {                // check if the button is pressed
+        if ((FILTbuttonAction == 0)  && (InUse == 0)) {          // is the light off?
+          FILTbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(GWswitchPin, HIGH);  //open greywater tank
+        } else if (FILTbuttonAction == 1) {
+          FILTbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(GWswitchPin, LOW);   //close greywater tank
+        }
+          //else {}
+      }
+    }
+    FILTbuttonState = Fval;                 // save the new state in our variable
+  }
+}
+void SendBack() {
+  int sval = digitalRead(SendbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int sval2 = digitalRead(SendbuttonPin);     // read the input again to check for bounces
+  if (sval == sval2) {                 // make sure we got 2 consistant readings!
+    if (sval != SendbuttonState) {          // the button state has changed!
+      if (sval == LOW) {                // check if the button is pressed
+        if ((SendbuttonAction == 0)  && (InUse == 0)) {          // is the light off?
+          SendbuttonAction = 1;               // turn light on!
+          InUse = 1;
+          digitalWrite(ITswitchPin, HIGH);  //open greywater tank
+        } else if (SendbuttonAction == 1) {
+          SendbuttonAction = 0;               // turn light off!
+          InUse = 0;
+          digitalWrite(ITswitchPin, LOW);   //close greywater tank
+        }
+          //else {}
+      }
+    }
+    SendbuttonState = sval;                 // save the new state in our variable
+  }
+}
+void SoftStart() {
+  int val = digitalRead(SSbuttonPin);      // read input value and store it in val
+  delay(10);                         // 10 milliseconds is a good amount of time
+  int val2 = digitalRead(SSbuttonPin);     // read the input again to check for bounces
+  if (val == val2) {                 // make sure we got 2 consistant readings!
+    if (val != SSbuttonState) {          // the button state has changed!
+      if (val == LOW) {                // check if the button is pressed
+        if (SSbuttonAction == 0) {          // is the light off?
+          SSbuttonAction = 1;               // turn light on!
+          digitalWrite(SSswitchPin, HIGH);
+        } else {
+          SSbuttonAction = 0;               // turn light off!
+          digitalWrite(SSswitchPin, LOW);
         }
       }
     }
-  } //END of switchtoggle()
+    SSbuttonState = val;                 // save the new state in our variable
+  }
+}
 
-  void begin()
-  {
-    pinMode(LedPin, OUTPUT);
-    digitalWrite(LedPin, LOW);
-    pinMode(ButtonPin, INPUT_PULLUP);
-    ButtonState = digitalRead(ButtonPin);
-  } //END of begin()
-
-};  //END of myStructure
-////////////////////8 auto / 9 manual  uv relay10 reads 1   back pressure11 reads 1
-/////A10:Wash water    A11: Graywater   A12: Blackwater
-//Create objects:
-myStructure blacktank = //blackwater tank 35,34 black then red
-{ 37, 2  //LED pin , Switch pin
-};
-myStructure washtank = //wash water tank 36, 39
-{38, 14  //LED pin , Switch pin
-};
-myStructure graytank = //graywater tank 42,45
-{44, 19  //LED pin , Switch pin
-};
-myStructure slowstart =//slow start 29,28
-{31, 17  //LED pin , Switch pin
-};
-myStructure graymembrane =//greywater mmbrane 23,22 
-{25, 6  //LED pin , Switch pin
-};
-myStructure blackmembrane =//blackwater membrane 24,27
-{26, 15  //LED pin , Switch pin
-};
-myStructure washproduct =//product washwater 41,40
-{43, 7   //LED pin , Switch pin
-};
-myStructure grayproduct =//product graywater 12,13
-{49, 16  //LED pin , Switch pin
-};
-myStructure blackreject =//reject blackwater 47,46
-{48, 4  //LED pin , Switch pin
-};
-myStructure grayreject =//reject graywater 30,33
-{32, 5  //LED pin , Switch pin
-};
-myStructure pump =
-{55, 18  //LED pin , Switch pin
-};
-myStructure uv =
-{54, 3  //LED pin , Switch pin
-};
-// etc.
-
-//**********************************************************************
-
-void setup()
-{
- blacktank.begin();
- washtank.begin();
- graytank.begin();
- slowstart.begin();
- graymembrane.begin();
- blackmembrane.begin();
- washproduct.begin();
- grayproduct.begin();
- blackreject.begin();
- grayreject.begin();
- pump.begin();
- uv.begin();
- 
- lcd.begin(16, 2);
- lcd.print("Starting...");
- lcd.setBacklight(GREEN);
- delay(500);
-} //End of setup()
-
-
-void loop()
-{statuss();
- blacktank.SwitchToggle();
- washtank.SwitchToggle();
- graytank.SwitchToggle();
- slowstart.SwitchToggle();
- graymembrane.SwitchToggle();
- blackmembrane.SwitchToggle();
- washproduct.SwitchToggle();
- grayproduct.SwitchToggle();
- blackreject.SwitchToggle();
- grayreject.SwitchToggle();
- pump.SwitchToggle();
- uv.SwitchToggle();
-} //End of loop()
+//END --- functions[
